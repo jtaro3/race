@@ -3,7 +3,7 @@ const $=s=>document.querySelector(s); const keys={};
 let state='menu',startAt=0,last=performance.now(),countValue=3,sound=true;
 const player={angle:0,speed:0,lateral:0,lap:1,progress:0,best:null,lapStart:0,boost:0};
 const rivals=Array.from({length:5},(_,i)=>({progress:.04+i*.105,speed:118+i*7,lane:(i%3-1)*.26,color:['#ff2d8d','#ffd83d','#21e6ff','#8e61ff','#ff713d'][i]}));
-const boosts=[.17,.48,.79];
+const boosts=[.17,.48,.79],boostArmed=boosts.map(()=>true);
 function resize(){const d=Math.min(devicePixelRatio,2),r=canvas.getBoundingClientRect();canvas.width=r.width*d;canvas.height=r.height*d;ctx.setTransform(d,0,0,d,0,0)}
 addEventListener('resize',resize);resize();
 addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();keys[e.key.toLowerCase()]=true});
@@ -12,7 +12,7 @@ document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key.toLowe
 $('#soundBtn').onclick=()=>{sound=!sound;$('#soundBtn').textContent=`SOUND ${sound?'ON':'OFF'}`};
 $('#startBtn').onclick=startRace;$('#restartBtn').onclick=startRace;
 function beep(freq,d=.08){if(!sound)return;const a=beep.a||(beep.a=new AudioContext),o=a.createOscillator(),g=a.createGain();o.frequency.value=freq;o.type='square';g.gain.setValueAtTime(.04,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+d);o.connect(g).connect(a.destination);o.start();o.stop(a.currentTime+d)}
-function startRace(){Object.assign(player,{speed:0,lateral:0,lap:1,progress:0,best:null,lapStart:0,boost:0});rivals.forEach((r,i)=>r.progress=.04+i*.105);$('#startScreen').classList.remove('show');$('#finishScreen').classList.remove('show');state='countdown';countValue=3;startAt=performance.now();showCount('3');beep(220)}
+function startRace(){Object.assign(player,{speed:0,lateral:0,lap:1,progress:0,best:null,lapStart:0,boost:0});boostArmed.fill(true);rivals.forEach((r,i)=>r.progress=.04+i*.105);$('#startScreen').classList.remove('show');$('#finishScreen').classList.remove('show');state='countdown';countValue=3;startAt=performance.now();showCount('3');beep(220)}
 function showCount(t){const el=$('#countdown');el.textContent=t;el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop')}
 function format(ms){const m=Math.floor(ms/60000),s=Math.floor(ms/1000)%60,x=Math.floor(ms%1000);return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(x).padStart(3,'0')}`}
 function update(dt,now){
@@ -23,7 +23,7 @@ function update(dt,now){
  const off=Math.abs(player.lateral)>.72;player.speed=Math.max(0,Math.min(player.boost>0?250:205,player.speed-(off?72*dt:0)));player.boost=Math.max(0,player.boost-dt);
  const steer=(right?1:0)-(left?1:0);player.lateral+=steer*dt*(.7+player.speed/180);player.lateral*=Math.pow(.93,dt*60);player.lateral=Math.max(-1.2,Math.min(1.2,player.lateral));
  const prev=player.progress;player.progress=(player.progress+player.speed*dt/6500)%1;
- boosts.forEach(b=>{let d=Math.abs(player.progress-b);if(d>.5)d=1-d;if(d<.012&&Math.abs(player.lateral)<.25&&player.boost<=0){player.boost=1.5;player.speed=Math.max(player.speed,230);beep(880,.12)}});
+ boosts.forEach((b,i)=>{let d=Math.abs(player.progress-b);if(d>.5)d=1-d;if(d>.04){boostArmed[i]=true;return}if(d<.028&&Math.abs(player.lateral)<.52&&boostArmed[i]){boostArmed[i]=false;player.boost=1.5;player.speed=Math.max(player.speed,230);beep(880,.12)}});
  if(player.progress<prev){const lapTime=now-player.lapStart;player.best=player.best?Math.min(player.best,lapTime):lapTime;player.lapStart=now;if(player.lap>=3){finish(now);return}player.lap++}
  rivals.forEach((r,i)=>{r.speed=132+i*4+Math.sin(now/800+i)*7;r.progress=(r.progress+r.speed*dt/6500)%1});
  let ahead=0;rivals.forEach(r=>{let d=(r.progress-player.progress+1)%1;if(d<.88)ahead++});$('#position').textContent=Math.min(6,ahead+1);$('#lap').textContent=player.lap;$('#speed').textContent=String(Math.round(player.speed)).padStart(3,'0');$('#raceTime').textContent=format(now-startAt);$('#bestLap').textContent=player.best?format(player.best):'--:--.---';
