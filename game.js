@@ -30,7 +30,7 @@ function update(dt,now){
 }
 function finish(now){state='finish';const pos=$('#position').textContent,suffix=pos==='1'?'ST':pos==='2'?'ND':pos==='3'?'RD':'TH';$('#finishPlace').textContent=pos+suffix;$('#finalTime').textContent=format(now-startAt);setTimeout(()=>$('#finishScreen').classList.add('show'),400);beep(520,.25)}
 function roadX(y,w,h){const horizon=h*.34,t=(y-horizon)/(h-horizon),curve=Math.sin(player.progress*Math.PI*2+1.1)*w*.12*(1-t)+Math.sin(player.progress*Math.PI*4)*w*.035;return w/2+curve-player.lateral*w*.18*t}
-function draw(){const w=canvas.clientWidth,h=canvas.clientHeight;ctx.clearRect(0,0,w,h);
+function draw(){const w=canvas.clientWidth,h=canvas.clientHeight,boostActive=player.boost>0;ctx.clearRect(0,0,w,h);
  const g=ctx.createLinearGradient(0,0,0,h*.55);g.addColorStop(0,'#071023');g.addColorStop(1,'#301143');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
  // skyline
  ctx.fillStyle='#080c18';for(let i=0;i<36;i++){const x=i*w/35,bh=18+((i*37)%90);ctx.fillRect(x,h*.34-bh,w/34+2,bh);if(i%2===0){ctx.fillStyle=i%4?'#21e6ff55':'#ff2d8d55';ctx.fillRect(x+4,h*.34-bh+8,2,Math.max(4,bh-15));ctx.fillStyle='#080c18'}}
@@ -39,10 +39,10 @@ function draw(){const w=canvas.clientWidth,h=canvas.clientHeight;ctx.clearRect(0
  // neon edges
  for(const side of [-1,1]){ctx.beginPath();for(let i=0;i<=30;i++){const t=i/30,y=hz+(h-hz)*t,half=w*(.035+.53*t),x=roadX(y,w,h)+half*side;i?ctx.lineTo(x,y):ctx.moveTo(x,y)}ctx.strokeStyle=side<0?'#ff2d8d':'#21e6ff';ctx.lineWidth=4;ctx.shadowBlur=18;ctx.shadowColor=ctx.strokeStyle;ctx.stroke();ctx.shadowBlur=0}
  // boost pads
- boosts.forEach(b=>{let d=(b-player.progress+1)%1;if(d<.22){const t=1-Math.pow(d/.22,.55),y=hz+(h-hz)*t,x=roadX(y,w,h),ww=w*(.035+.53*t)*.38;ctx.fillStyle='#caff3dbb';ctx.shadowBlur=16;ctx.shadowColor='#caff3d';ctx.fillRect(x-ww/2,y-4-Math.max(2,10*t),ww,6+12*t);ctx.shadowBlur=0}});
+ boosts.forEach(b=>{let d=(b-player.progress+1)%1;if(d<.22){const t=1-Math.pow(d/.22,.55),y=hz+(h-hz)*t,x=roadX(y,w,h),ww=w*(.035+.53*t)*.46,hh=8+17*t,color=boostActive?'#ff354d':'#ffe45c';ctx.fillStyle='#111321';ctx.fillRect(x-ww/2-3,y-hh/2-3,ww+6,hh+6);ctx.fillStyle=color;ctx.shadowBlur=boostActive?28:22;ctx.shadowColor=color;ctx.fillRect(x-ww/2,y-hh/2,ww,hh);ctx.fillStyle=boostActive?'#ffb0b8':'#ffffff';for(let stripe=-.38;stripe<=.38;stripe+=.38)ctx.fillRect(x+ww*stripe-ww*.055,y-hh/2,ww*.11,hh);ctx.shadowBlur=0}});
  // rivals
  rivals.forEach(r=>{let d=(r.progress-player.progress+1)%1;if(d>.015&&d<.32){const t=1-Math.pow(d/.32,.55),y=hz+(h-hz)*t,half=w*(.035+.53*t),x=roadX(y,w,h)+half*r.lane,sz=10+38*t;drawKart(x,y,sz,r.color,false)}});
- drawKart(w/2+player.lateral*w*.06,h*.82,52,'#caff3d',true);drawMiniMap(w,h);drawParticles(w,h);
+ drawKart(w/2+player.lateral*w*.06,h*.82,52,boostActive?'#ff354d':'#caff3d',true);if(boostActive)drawBoostStatus(w,h);drawMiniMap(w,h);drawParticles(w,h);
 }
 function trackPoint(progress,cx,cy,scale){const a=progress*Math.PI*2-Math.PI/2,r=1+.13*Math.sin(a*3)-.07*Math.cos(a*2);return{x:cx+Math.cos(a)*scale*r,y:cy+Math.sin(a)*scale*.62*r}}
 function drawMiniMap(w,h){
@@ -52,11 +52,12 @@ function drawMiniMap(w,h){
  ctx.fillStyle='#9ba8be';ctx.font='700 9px Inter, sans-serif';ctx.letterSpacing='1px';ctx.fillText('TRACK MAP',x+11,y+17);
  ctx.beginPath();for(let i=0;i<=96;i++){const p=trackPoint(i/96,cx,cy,size*.34);i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)}ctx.closePath();ctx.strokeStyle='#111827';ctx.lineWidth=size*.115;ctx.stroke();
  ctx.beginPath();for(let i=0;i<=96;i++){const p=trackPoint(i/96,cx,cy,size*.34);i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)}ctx.closePath();ctx.strokeStyle='#73809a';ctx.lineWidth=size*.037;ctx.stroke();
- boosts.forEach(p=>{const b=trackPoint(p,cx,cy,size*.34);ctx.fillStyle='#caff3d';ctx.shadowBlur=8;ctx.shadowColor='#caff3d';ctx.beginPath();ctx.arc(b.x,b.y,size*.028,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0});
+ const boostColor=player.boost>0?'#ff354d':'#ffe45c';boosts.forEach(p=>{const b=trackPoint(p,cx,cy,size*.34);ctx.fillStyle=boostColor;ctx.shadowBlur=10;ctx.shadowColor=boostColor;ctx.beginPath();ctx.arc(b.x,b.y,size*.032,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0});
  rivals.forEach(r=>{const k=trackPoint(r.progress,cx,cy,size*.34);ctx.fillStyle=r.color;ctx.beginPath();ctx.arc(k.x,k.y,size*.027,0,Math.PI*2);ctx.fill()});
- const me=trackPoint(player.progress,cx,cy,size*.34),ahead=trackPoint((player.progress+.012)%1,cx,cy,size*.34),angle=Math.atan2(ahead.y-me.y,ahead.x-me.x);ctx.translate(me.x,me.y);ctx.rotate(angle);ctx.fillStyle='#f7ffce';ctx.shadowBlur=12;ctx.shadowColor='#caff3d';ctx.beginPath();ctx.moveTo(size*.06,0);ctx.lineTo(-size*.037,-size*.035);ctx.lineTo(-size*.02,0);ctx.lineTo(-size*.037,size*.035);ctx.closePath();ctx.fill();ctx.shadowBlur=0;
+ const me=trackPoint(player.progress,cx,cy,size*.34),ahead=trackPoint((player.progress+.012)%1,cx,cy,size*.34),angle=Math.atan2(ahead.y-me.y,ahead.x-me.x),playerColor=player.boost>0?'#ff354d':'#f7ffce';ctx.translate(me.x,me.y);ctx.rotate(angle);ctx.fillStyle=playerColor;ctx.shadowBlur=12;ctx.shadowColor=playerColor;ctx.beginPath();ctx.moveTo(size*.06,0);ctx.lineTo(-size*.037,-size*.035);ctx.lineTo(-size*.02,0);ctx.lineTo(-size*.037,size*.035);ctx.closePath();ctx.fill();ctx.shadowBlur=0;
  ctx.restore();
 }
+function drawBoostStatus(w,h){ctx.save();ctx.textAlign='center';ctx.font=`italic 800 ${Math.max(16,w*.022)}px "Barlow Condensed", sans-serif`;ctx.fillStyle='#ff354d';ctx.shadowBlur=18;ctx.shadowColor='#ff354d';ctx.fillText('BOOST ACTIVE',w/2,h*.64);ctx.restore()}
 function drawKart(x,y,s,c,hero){ctx.save();ctx.translate(x,y);if(hero&&player.speed>20){ctx.fillStyle='#21e6ff99';ctx.beginPath();ctx.moveTo(-s*.18,s*.35);ctx.lineTo(0,s*(.8+Math.random()*.35));ctx.lineTo(s*.18,s*.35);ctx.fill()}ctx.shadowBlur=hero?22:8;ctx.shadowColor=c;ctx.fillStyle='#090b10';ctx.fillRect(-s*.55,-s*.05,s*.18,s*.55);ctx.fillRect(s*.37,-s*.05,s*.18,s*.55);ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(-s*.42,s*.32);ctx.lineTo(-s*.28,-s*.22);ctx.lineTo(0,-s*.42);ctx.lineTo(s*.28,-s*.22);ctx.lineTo(s*.42,s*.32);ctx.closePath();ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#101724';ctx.fillRect(-s*.18,-s*.2,s*.36,s*.35);ctx.fillStyle='#fff';ctx.fillRect(-s*.06,-s*.06,s*.12,s*.12);ctx.restore()}
 function drawParticles(w,h){const motion=player.speed/210;ctx.strokeStyle='#dbe9ff44';ctx.lineWidth=1;for(let i=0;i<28;i++){const seed=(i*83+Math.floor(performance.now()*.04*motion))%997,x=(seed*17)%w,y=h*.35+(seed*11)%(h*.65);ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+(x-w/2)*.018*motion,y+10+30*motion);ctx.stroke()}}
 function loop(now){const dt=Math.min(.035,(now-last)/1000);last=now;update(dt,now);draw();requestAnimationFrame(loop)}requestAnimationFrame(loop);
