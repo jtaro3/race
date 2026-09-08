@@ -3,7 +3,7 @@ const $=s=>document.querySelector(s); const keys={};
 let state='menu',startAt=0,last=performance.now(),countValue=3,sound=true;
 const player={angle:0,speed:0,lateral:0,lap:1,progress:0,distance:0,best:null,lapStart:0,boost:0};
 const rivals=Array.from({length:5},(_,i)=>({distance:.04+i*.105,progress:.04+i*.105,speed:118+i*7,lane:(i%3-1)*.26,color:['#ff2d8d','#ffd83d','#21e6ff','#8e61ff','#ff713d'][i]}));
-const trackLength=3250,boosts=[.17,.48,.79],boostArmed=boosts.map(()=>true),touchInput={up:false,down:false,left:false,right:false};let touchPointer=null,touchOrigin=null;const touchPad=$('#touchPad');
+const trackLength=3250,courseCenters=[0,0,.05,.62,.76,.2,-.48,-.72,-.15,.46,.6,.16],boosts=[.17,.48,.79],boostArmed=boosts.map(()=>true),touchInput={up:false,down:false,left:false,right:false};let touchPointer=null,touchOrigin=null;const touchPad=$('#touchPad');
 function resize(){const d=Math.min(devicePixelRatio,2),r=canvas.getBoundingClientRect();canvas.width=r.width*d;canvas.height=r.height*d;ctx.setTransform(d,0,0,d,0,0)}
 addEventListener('resize',resize);resize();
 addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();keys[e.key.toLowerCase()]=true});
@@ -21,7 +21,7 @@ function update(dt,now){
  const up=keys.arrowup||keys.w||touchInput.up,down=keys.arrowdown||keys.s||touchInput.down,left=keys.arrowleft||keys.a||touchInput.left,right=keys.arrowright||keys.d||touchInput.right;
  if(up)player.speed+=105*dt;else player.speed-=37*dt;if(down)player.speed-=150*dt;
  const off=Math.abs(player.lateral)>.72;player.speed=Math.max(0,Math.min(player.boost>0?250:205,player.speed-(off?72*dt:0)));player.boost=Math.max(0,player.boost-dt);
- const steer=(right?1:0)-(left?1:0);player.lateral+=steer*dt*(.7+player.speed/180);player.lateral*=Math.pow(.93,dt*60);player.lateral=Math.max(-1.2,Math.min(1.2,player.lateral));
+ const steer=(right?1:0)-(left?1:0),curveForce=Math.max(-3,Math.min(3,courseBend(player.progress)));player.lateral+=steer*dt*(.7+player.speed/180);player.lateral-=curveForce*(player.speed/205)*.23*dt;player.lateral*=Math.pow(.93,dt*60);player.lateral=Math.max(-1.2,Math.min(1.2,player.lateral));
  const distanceDelta=player.speed*dt/trackLength,prev=player.progress;player.distance+=distanceDelta;player.progress=player.distance%1;
  boosts.forEach((b,i)=>{let d=Math.abs(player.progress-b);if(d>.5)d=1-d;if(d>.04){boostArmed[i]=true;return}if(d<.028&&Math.abs(player.lateral)<.52&&boostArmed[i]){boostArmed[i]=false;player.boost=1.5;player.speed=Math.max(player.speed,230);beep(880,.12)}});
  if(player.progress<prev){const lapTime=now-player.lapStart;player.best=player.best?Math.min(player.best,lapTime):lapTime;player.lapStart=now;if(player.lap>=3){finish(now);return}player.lap++}
@@ -36,22 +36,26 @@ function beginTouch(id,x,y){if(touchPointer!==null||(state!=='race'&&state!=='co
 function moveTouch(id,x,y){if(touchPointer!==id)return false;updateTouchDrive(x,y);return true}
 function endTouch(id){if(touchPointer===id)resetTouchPad()}
 if(window.PointerEvent){canvas.addEventListener('pointerdown',e=>{if(e.pointerType!=='touch'&&e.pointerType!=='pen')return;const p=canvasPoint(e.clientX,e.clientY);if(beginTouch(e.pointerId,p.x,p.y)){e.preventDefault();canvas.setPointerCapture?.(e.pointerId)}});canvas.addEventListener('pointermove',e=>{const p=canvasPoint(e.clientX,e.clientY);if(moveTouch(e.pointerId,p.x,p.y))e.preventDefault()});canvas.addEventListener('pointerup',e=>endTouch(e.pointerId));canvas.addEventListener('pointercancel',e=>endTouch(e.pointerId));canvas.addEventListener('lostpointercapture',e=>endTouch(e.pointerId))}else{const findTouch=(list,id)=>Array.from(list).find(t=>t.identifier===id);canvas.addEventListener('touchstart',e=>{const t=e.changedTouches[0],p=canvasPoint(t.clientX,t.clientY);if(beginTouch(t.identifier,p.x,p.y))e.preventDefault()},{passive:false});canvas.addEventListener('touchmove',e=>{const t=findTouch(e.changedTouches,touchPointer);if(t){const p=canvasPoint(t.clientX,t.clientY);if(moveTouch(t.identifier,p.x,p.y))e.preventDefault()}},{passive:false});canvas.addEventListener('touchend',e=>{const t=findTouch(e.changedTouches,touchPointer);if(t)endTouch(t.identifier)});canvas.addEventListener('touchcancel',()=>resetTouchPad())}
-function roadX(y,w,h){const horizon=h*.34,t=(y-horizon)/(h-horizon),curve=Math.sin(player.progress*Math.PI*2+1.1)*w*.12*(1-t)+Math.sin(player.progress*Math.PI*4)*w*.035;return w/2+curve-player.lateral*w*.18*t}
+function courseCenter(progress){const p=((progress%1)+1)%1,n=courseCenters.length,scaled=p*n,index=Math.floor(scaled),t=scaled-index,ease=t*t*(3-2*t),a=courseCenters[index],b=courseCenters[(index+1)%n];return a+(b-a)*ease}
+function courseBend(progress){const step=.003;return(courseCenter(progress+step)-courseCenter(progress-step))/(step*2)}
+function roadHalf(t,w){return w*(.045+.43*t)}
+function roadX(y,w,h){const horizon=h*.34,t=(y-horizon)/(h-horizon),lookAhead=(1-t)*.28,curve=(courseCenter(player.progress+lookAhead)-courseCenter(player.progress))*w*.62;return w/2+curve-player.lateral*w*.34*t}
 function draw(){const w=canvas.clientWidth,h=canvas.clientHeight;ctx.clearRect(0,0,w,h);
  const g=ctx.createLinearGradient(0,0,0,h*.55);g.addColorStop(0,'#071023');g.addColorStop(1,'#301143');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
  // skyline
  ctx.fillStyle='#080c18';for(let i=0;i<36;i++){const x=i*w/35,bh=18+((i*37)%90);ctx.fillRect(x,h*.34-bh,w/34+2,bh);if(i%2===0){ctx.fillStyle=i%4?'#21e6ff55':'#ff2d8d55';ctx.fillRect(x+4,h*.34-bh+8,2,Math.max(4,bh-15));ctx.fillStyle='#080c18'}}
  ctx.fillStyle='#101526';ctx.fillRect(0,h*.34,w,h*.66);
- const slices=70,hz=h*.34;for(let i=0;i<slices;i++){const t=i/slices,t2=(i+1)/slices,y=hz+(h-hz)*t,y2=hz+(h-hz)*t2,half=w*(.035+.53*t),half2=w*(.035+.53*t2),x=roadX(y,w,h),x2=roadX(y2,w,h);ctx.beginPath();ctx.moveTo(x-half,y);ctx.lineTo(x+half,y);ctx.lineTo(x2+half2,y2);ctx.lineTo(x2-half2,y2);ctx.fillStyle=(i+Math.floor(player.progress*800))%8<4?'#252a35':'#20242e';ctx.fill();if(i%7<3){ctx.strokeStyle='#dce6ff44';ctx.lineWidth=Math.max(1,8*t);for(const lane of [-.34,.34]){ctx.beginPath();ctx.moveTo(x+half*lane,y);ctx.lineTo(x2+half2*lane,y2);ctx.stroke()}}}
+ const slices=70,hz=h*.34;for(let i=0;i<slices;i++){const t=i/slices,t2=(i+1)/slices,y=hz+(h-hz)*t,y2=hz+(h-hz)*t2,half=roadHalf(t,w),half2=roadHalf(t2,w),x=roadX(y,w,h),x2=roadX(y2,w,h);ctx.beginPath();ctx.moveTo(x-half,y);ctx.lineTo(x+half,y);ctx.lineTo(x2+half2,y2);ctx.lineTo(x2-half2,y2);ctx.fillStyle=(i+Math.floor(player.progress*800))%8<4?'#252a35':'#20242e';ctx.fill();if(i%7<3){ctx.strokeStyle='#dce6ff44';ctx.lineWidth=Math.max(1,8*t);for(const lane of [-.34,.34]){ctx.beginPath();ctx.moveTo(x+half*lane,y);ctx.lineTo(x2+half2*lane,y2);ctx.stroke()}}}
  // neon edges
- for(const side of [-1,1]){ctx.beginPath();for(let i=0;i<=30;i++){const t=i/30,y=hz+(h-hz)*t,half=w*(.035+.53*t),x=roadX(y,w,h)+half*side;i?ctx.lineTo(x,y):ctx.moveTo(x,y)}ctx.strokeStyle=side<0?'#ff2d8d':'#21e6ff';ctx.lineWidth=4;ctx.shadowBlur=18;ctx.shadowColor=ctx.strokeStyle;ctx.stroke();ctx.shadowBlur=0}
+ for(const side of [-1,1]){ctx.beginPath();for(let i=0;i<=30;i++){const t=i/30,y=hz+(h-hz)*t,half=roadHalf(t,w),x=roadX(y,w,h)+half*side;i?ctx.lineTo(x,y):ctx.moveTo(x,y)}ctx.strokeStyle=side<0?'#ff2d8d':'#21e6ff';ctx.lineWidth=4;ctx.shadowBlur=18;ctx.shadowColor=ctx.strokeStyle;ctx.stroke();ctx.shadowBlur=0}
+ const nextTurn=courseBend(player.progress+.1);if(Math.abs(nextTurn)>1.1){ctx.save();ctx.textAlign='center';ctx.font=`800 ${Math.max(20,w*.035)}px "Barlow Condensed",sans-serif`;ctx.fillStyle='#ffe45c';ctx.shadowBlur=14;ctx.shadowColor='#ffe45c';ctx.fillText(nextTurn>0?'›››':'‹‹‹',w/2,h*.43);ctx.restore()}
  // finish line
- const finishD=(1-player.progress)%1;if(finishD<.22){const t=1-Math.pow(finishD/.22,.55),y=hz+(h-hz)*t,half=w*(.035+.53*t),x=roadX(y,w,h),lineH=6+18*t,cols=12;for(let row=0;row<2;row++)for(let col=0;col<cols;col++){ctx.fillStyle=(row+col)%2?'#f5f7ff':'#10131d';ctx.fillRect(x-half+col*(half*2/cols),y-lineH/2+row*(lineH/2),half*2/cols+1,lineH/2+1)}}
+ const finishD=(1-player.progress)%1;if(finishD<.22){const t=1-Math.pow(finishD/.22,.55),y=hz+(h-hz)*t,half=roadHalf(t,w),x=roadX(y,w,h),lineH=6+18*t,cols=12;for(let row=0;row<2;row++)for(let col=0;col<cols;col++){ctx.fillStyle=(row+col)%2?'#f5f7ff':'#10131d';ctx.fillRect(x-half+col*(half*2/cols),y-lineH/2+row*(lineH/2),half*2/cols+1,lineH/2+1)}}
  // boost pads
- boosts.forEach(b=>{let d=(b-player.progress+1)%1;if(d<.22){const t=1-Math.pow(d/.22,.55),y=hz+(h-hz)*t,x=roadX(y,w,h),ww=w*(.035+.53*t)*.46,hh=8+17*t,color='#ffe45c';ctx.fillStyle='#111321';ctx.fillRect(x-ww/2-3,y-hh/2-3,ww+6,hh+6);ctx.fillStyle=color;ctx.shadowBlur=22;ctx.shadowColor=color;ctx.fillRect(x-ww/2,y-hh/2,ww,hh);ctx.fillStyle='#ffffff';for(let stripe=-.38;stripe<=.38;stripe+=.38)ctx.fillRect(x+ww*stripe-ww*.055,y-hh/2,ww*.11,hh);ctx.shadowBlur=0}});
+ boosts.forEach(b=>{let d=(b-player.progress+1)%1;if(d<.22){const t=1-Math.pow(d/.22,.55),y=hz+(h-hz)*t,x=roadX(y,w,h),ww=roadHalf(t,w)*.92,hh=8+17*t,color='#ffe45c';ctx.fillStyle='#111321';ctx.fillRect(x-ww/2-3,y-hh/2-3,ww+6,hh+6);ctx.fillStyle=color;ctx.shadowBlur=22;ctx.shadowColor=color;ctx.fillRect(x-ww/2,y-hh/2,ww,hh);ctx.fillStyle='#ffffff';for(let stripe=-.38;stripe<=.38;stripe+=.38)ctx.fillRect(x+ww*stripe-ww*.055,y-hh/2,ww*.11,hh);ctx.shadowBlur=0}});
  // rivals
- rivals.forEach(r=>{let d=(r.progress-player.progress+1)%1;if(d>.015&&d<.32){const t=1-Math.pow(d/.32,.55),y=hz+(h-hz)*t,half=w*(.035+.53*t),x=roadX(y,w,h)+half*r.lane,sz=10+38*t;drawKart(x,y,sz,r.color,false)}});
- drawKart(w/2+player.lateral*w*.06,h*.82,52,'#caff3d',true);if(player.boost>0)drawBoostStatus(w,h);drawMiniMap(w,h);drawParticles(w,h);
+ rivals.forEach(r=>{let d=(r.progress-player.progress+1)%1;if(d>.015&&d<.32){const t=1-Math.pow(d/.32,.55),y=hz+(h-hz)*t,half=roadHalf(t,w),x=roadX(y,w,h)+half*r.lane,sz=10+38*t;drawKart(x,y,sz,r.color,false)}});
+ drawKart(w/2+player.lateral*w*.13,h*.82,52,'#caff3d',true);if(player.boost>0)drawBoostStatus(w,h);drawMiniMap(w,h);drawParticles(w,h);
 }
 function trackPoint(progress,cx,cy,scale){const a=progress*Math.PI*2-Math.PI/2,r=1+.13*Math.sin(a*3)-.07*Math.cos(a*2);return{x:cx+Math.cos(a)*scale*r,y:cy+Math.sin(a)*scale*.62*r}}
 function drawMiniMap(w,h){
