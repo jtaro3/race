@@ -1,7 +1,7 @@
 const canvas=document.querySelector('#game'),ctx=canvas.getContext('2d');
 const $=s=>document.querySelector(s); const keys={};
 let state='menu',startAt=0,last=performance.now(),countValue=3,sound=true;
-const player={angle:0,speed:0,lateral:0,lap:1,progress:0,distance:0,best:null,lapStart:0,boost:0};
+const player={angle:0,speed:0,lateral:0,lap:1,progress:0,distance:0,best:null,lapStart:0,boost:0,wallHit:false,wallFlash:0};
 const rivals=Array.from({length:5},(_,i)=>({distance:.04+i*.105,progress:.04+i*.105,speed:118+i*7,lane:(i%3-1)*.26,color:['#ff2d8d','#ffd83d','#21e6ff','#8e61ff','#ff713d'][i]}));
 const trackLength=3250,courseCenters=[0,0,.05,.62,.76,.2,-.48,-.72,-.15,.46,.6,.16],boosts=[.17,.48,.79],boostArmed=boosts.map(()=>true),touchInput={up:false,down:false,left:false,right:false};let touchPointer=null,touchOrigin=null;const touchPad=$('#touchPad');
 function resize(){const d=Math.min(devicePixelRatio,2),r=canvas.getBoundingClientRect();canvas.width=r.width*d;canvas.height=r.height*d;ctx.setTransform(d,0,0,d,0,0)}
@@ -12,7 +12,7 @@ document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key.toLowe
 $('#soundBtn').onclick=()=>{sound=!sound;$('#soundBtn').textContent=`SOUND ${sound?'ON':'OFF'}`};
 $('#startBtn').onclick=startRace;$('#restartBtn').onclick=startRace;$('#restartRaceBtn').onclick=startRace;
 function beep(freq,d=.08){if(!sound)return;const a=beep.a||(beep.a=new AudioContext),o=a.createOscillator(),g=a.createGain();o.frequency.value=freq;o.type='square';g.gain.setValueAtTime(.04,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+d);o.connect(g).connect(a.destination);o.start();o.stop(a.currentTime+d)}
-function startRace(){resetTouchPad();Object.assign(player,{speed:0,lateral:0,lap:1,progress:0,distance:0,best:null,lapStart:0,boost:0});boostArmed.fill(true);rivals.forEach((r,i)=>{r.distance=.04+i*.105;r.progress=r.distance});$('#startScreen').classList.remove('show');$('#finishScreen').classList.remove('show');state='countdown';countValue=3;startAt=performance.now();showCount('3');beep(220)}
+function startRace(){resetTouchPad();Object.assign(player,{speed:0,lateral:0,lap:1,progress:0,distance:0,best:null,lapStart:0,boost:0,wallHit:false,wallFlash:0});boostArmed.fill(true);rivals.forEach((r,i)=>{r.distance=.04+i*.105;r.progress=r.distance});$('#startScreen').classList.remove('show');$('#finishScreen').classList.remove('show');state='countdown';countValue=3;startAt=performance.now();showCount('3');beep(220)}
 function showCount(t){const el=$('#countdown');el.textContent=t;el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop')}
 function format(ms){const m=Math.floor(ms/60000),s=Math.floor(ms/1000)%60,x=Math.floor(ms%1000);return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(x).padStart(3,'0')}`}
 function update(dt,now){
@@ -20,8 +20,8 @@ function update(dt,now){
  if(state!=='race')return;
  const up=keys.arrowup||keys.w||touchInput.up,down=keys.arrowdown||keys.s||touchInput.down,left=keys.arrowleft||keys.a||touchInput.left,right=keys.arrowright||keys.d||touchInput.right;
  if(up)player.speed+=105*dt;else player.speed-=37*dt;if(down)player.speed-=150*dt;
- const off=Math.abs(player.lateral)>.72;player.speed=Math.max(0,Math.min(player.boost>0?250:205,player.speed-(off?72*dt:0)));player.boost=Math.max(0,player.boost-dt);
- const steer=(right?1:0)-(left?1:0),curveForce=Math.max(-3,Math.min(3,courseBend(player.progress)));player.lateral+=steer*dt*(.7+player.speed/180);player.lateral-=curveForce*(player.speed/205)*.23*dt;player.lateral*=Math.pow(.93,dt*60);player.lateral=Math.max(-1.2,Math.min(1.2,player.lateral));
+ const steer=(right?1:0)-(left?1:0),curveForce=Math.max(-3,Math.min(3,courseBend(player.progress)));player.lateral+=steer*dt*(.7+player.speed/180);player.lateral-=curveForce*(player.speed/205)*.36*dt;player.lateral*=Math.pow(.93,dt*60);
+ const wallLimit=.72,hitWall=Math.abs(player.lateral)>wallLimit;if(hitWall){player.lateral=Math.sign(player.lateral)*wallLimit;player.boost=0;if(!player.wallHit){player.speed=Math.min(78,player.speed*.42);player.wallHit=true;player.wallFlash=1;beep(120,.07)}player.speed-=260*dt}else player.wallHit=false;player.speed=Math.max(0,Math.min(player.boost>0?250:205,player.speed));player.boost=Math.max(0,player.boost-dt);player.wallFlash=Math.max(0,player.wallFlash-dt*3);
  const distanceDelta=player.speed*dt/trackLength,prev=player.progress;player.distance+=distanceDelta;player.progress=player.distance%1;
  boosts.forEach((b,i)=>{let d=Math.abs(player.progress-b);if(d>.5)d=1-d;if(d>.04){boostArmed[i]=true;return}if(d<.028&&Math.abs(player.lateral)<.52&&boostArmed[i]){boostArmed[i]=false;player.boost=1.5;player.speed=Math.max(player.speed,230);beep(880,.12)}});
  if(player.progress<prev){const lapTime=now-player.lapStart;player.best=player.best?Math.min(player.best,lapTime):lapTime;player.lapStart=now;if(player.lap>=3){finish(now);return}player.lap++}
@@ -56,7 +56,7 @@ function draw(){const w=canvas.clientWidth,h=canvas.clientHeight;ctx.clearRect(0
  boosts.forEach(b=>{let d=(b-player.progress+1)%1;if(d<.22){const t=1-Math.pow(d/.22,.55),y=hz+(h-hz)*t,x=roadX(y,w,h),ww=roadHalf(t,w)*.92,hh=8+17*t,color='#ffe45c';ctx.fillStyle='#111321';ctx.fillRect(x-ww/2-3,y-hh/2-3,ww+6,hh+6);ctx.fillStyle=color;ctx.shadowBlur=22;ctx.shadowColor=color;ctx.fillRect(x-ww/2,y-hh/2,ww,hh);ctx.fillStyle='#ffffff';for(let stripe=-.38;stripe<=.38;stripe+=.38)ctx.fillRect(x+ww*stripe-ww*.055,y-hh/2,ww*.11,hh);ctx.shadowBlur=0}});
  // rivals
  rivals.forEach(r=>{let d=(r.progress-player.progress+1)%1;if(d>.015&&d<.32){const t=1-Math.pow(d/.32,.55),y=hz+(h-hz)*t,half=roadHalf(t,w),x=roadX(y,w,h)+half*r.lane,sz=10+38*t;drawKart(x,y,sz,r.color,false)}});
- drawKart(w/2,h*.69,52,'#caff3d',true);if(player.boost>0)drawBoostStatus(w,h);drawMiniMap(w,h);drawParticles(w,h);
+ drawKart(w/2,h*.69,52,'#caff3d',true);if(player.wallFlash>0){ctx.fillStyle=`rgba(255,45,141,${player.wallFlash*.14})`;ctx.fillRect(0,0,w,h)}if(player.boost>0)drawBoostStatus(w,h);drawMiniMap(w,h);drawParticles(w,h);
 }
 function trackPoint(progress,cx,cy,scale){const a=progress*Math.PI*2-Math.PI/2,r=1+.13*Math.sin(a*3)-.07*Math.cos(a*2);return{x:cx+Math.cos(a)*scale*r,y:cy+Math.sin(a)*scale*.62*r}}
 function drawMiniMap(w,h){
