@@ -1,7 +1,7 @@
 const canvas=document.querySelector('#game'),ctx=canvas.getContext('2d');
 const $=s=>document.querySelector(s); const keys={};
 let state='menu',startAt=0,last=performance.now(),countValue=3,sound=true;
-const player={angle:0,speed:0,lateral:0,lap:1,progress:0,distance:0,best:null,lapStart:0,boost:0,wallHit:false,wallFlash:0};
+const player={angle:0,speed:0,lateral:0,lap:1,progress:0,distance:0,best:null,lapStart:0,boost:0,wallHit:false,wallFlash:0,wallTimer:0};
 const rivals=Array.from({length:5},(_,i)=>({distance:.04+i*.105,progress:.04+i*.105,speed:118+i*7,lane:(i%3-1)*.26,color:['#ff2d8d','#ffd83d','#21e6ff','#8e61ff','#ff713d'][i]}));
 const trackLength=3250,courseCenters=[0,0,.05,.62,.76,.2,-.48,-.72,-.15,.46,.6,.16],boosts=[.17,.48,.79],boostArmed=boosts.map(()=>true),touchInput={up:false,down:false,left:false,right:false};let touchPointer=null,touchOrigin=null;const touchPad=$('#touchPad');
 function resize(){const d=Math.min(devicePixelRatio,2),r=canvas.getBoundingClientRect();canvas.width=r.width*d;canvas.height=r.height*d;ctx.setTransform(d,0,0,d,0,0)}
@@ -12,7 +12,7 @@ document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key.toLowe
 $('#soundBtn').onclick=()=>{sound=!sound;$('#soundBtn').textContent=`SOUND ${sound?'ON':'OFF'}`};
 $('#startBtn').onclick=startRace;$('#restartBtn').onclick=startRace;$('#restartRaceBtn').onclick=startRace;
 function beep(freq,d=.08){if(!sound)return;const a=beep.a||(beep.a=new AudioContext),o=a.createOscillator(),g=a.createGain();o.frequency.value=freq;o.type='square';g.gain.setValueAtTime(.04,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+d);o.connect(g).connect(a.destination);o.start();o.stop(a.currentTime+d)}
-function startRace(){resetTouchPad();Object.assign(player,{speed:0,lateral:0,lap:1,progress:0,distance:0,best:null,lapStart:0,boost:0,wallHit:false,wallFlash:0});boostArmed.fill(true);rivals.forEach((r,i)=>{r.distance=.04+i*.105;r.progress=r.distance});$('#startScreen').classList.remove('show');$('#finishScreen').classList.remove('show');state='countdown';countValue=3;startAt=performance.now();showCount('3');beep(220)}
+function startRace(){resetTouchPad();Object.assign(player,{speed:0,lateral:0,lap:1,progress:0,distance:0,best:null,lapStart:0,boost:0,wallHit:false,wallFlash:0,wallTimer:0});boostArmed.fill(true);rivals.forEach((r,i)=>{r.distance=.04+i*.105;r.progress=r.distance});$('#startScreen').classList.remove('show');$('#finishScreen').classList.remove('show');state='countdown';countValue=3;startAt=performance.now();showCount('3');beep(220)}
 function showCount(t){const el=$('#countdown');el.textContent=t;el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop')}
 function format(ms){const m=Math.floor(ms/60000),s=Math.floor(ms/1000)%60,x=Math.floor(ms%1000);return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(x).padStart(3,'0')}`}
 function update(dt,now){
@@ -20,8 +20,8 @@ function update(dt,now){
  if(state!=='race')return;
  const up=keys.arrowup||keys.w||touchInput.up,down=keys.arrowdown||keys.s||touchInput.down,left=keys.arrowleft||keys.a||touchInput.left,right=keys.arrowright||keys.d||touchInput.right;
  if(up)player.speed+=105*dt;else player.speed-=37*dt;if(down)player.speed-=150*dt;
- const steer=(right?1:0)-(left?1:0),curveForce=Math.max(-3,Math.min(3,courseBend(player.progress)));player.lateral+=steer*dt*(.7+player.speed/180);player.lateral-=curveForce*(player.speed/205)*.36*dt;player.lateral*=Math.pow(.93,dt*60);
- const wallLimit=.72,hitWall=Math.abs(player.lateral)>wallLimit;if(hitWall){player.lateral=Math.sign(player.lateral)*wallLimit;player.boost=0;if(!player.wallHit){player.speed=Math.min(78,player.speed*.42);player.wallHit=true;player.wallFlash=1;beep(120,.07)}player.speed-=260*dt}else player.wallHit=false;player.speed=Math.max(0,Math.min(player.boost>0?250:205,player.speed));player.boost=Math.max(0,player.boost-dt);player.wallFlash=Math.max(0,player.wallFlash-dt*3);
+ const steer=(right?1:0)-(left?1:0),curveForce=Math.max(-3,Math.min(3,courseBend(player.progress)));player.lateral+=steer*dt*(.7+player.speed/180);player.lateral-=curveForce*(player.speed/205)*.9*dt;player.lateral*=Math.pow(.97,dt*60);
+ const wallLimit=.72,hitWall=Math.abs(player.lateral)>wallLimit;if(hitWall){player.lateral=Math.sign(player.lateral)*wallLimit;player.boost=0;if(!player.wallHit){player.speed=Math.min(78,player.speed*.42);player.wallHit=true;player.wallFlash=1;player.wallTimer=.6;beep(120,.07)}}else player.wallHit=false;player.wallTimer=Math.max(0,player.wallTimer-dt);if(player.wallTimer>0)player.speed-=300*dt;player.speed=Math.max(0,Math.min(player.boost>0?250:205,player.speed));player.boost=Math.max(0,player.boost-dt);player.wallFlash=Math.max(0,player.wallFlash-dt*3);
  const distanceDelta=player.speed*dt/trackLength,prev=player.progress;player.distance+=distanceDelta;player.progress=player.distance%1;
  boosts.forEach((b,i)=>{let d=Math.abs(player.progress-b);if(d>.5)d=1-d;if(d>.04){boostArmed[i]=true;return}if(d<.028&&Math.abs(player.lateral)<.52&&boostArmed[i]){boostArmed[i]=false;player.boost=1.5;player.speed=Math.max(player.speed,230);beep(880,.12)}});
  if(player.progress<prev){const lapTime=now-player.lapStart;player.best=player.best?Math.min(player.best,lapTime):lapTime;player.lapStart=now;if(player.lap>=3){finish(now);return}player.lap++}
