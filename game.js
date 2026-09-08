@@ -43,11 +43,12 @@ function roadX(y,w,h){const horizon=h*.34,t=(y-horizon)/(h-horizon),lookAhead=(1
 function draw(){const w=canvas.clientWidth,h=canvas.clientHeight;ctx.clearRect(0,0,w,h);
  const g=ctx.createLinearGradient(0,0,0,h*.55);g.addColorStop(0,'#071023');g.addColorStop(1,'#301143');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
  // skyline
- ctx.fillStyle='#080c18';for(let i=0;i<36;i++){const x=i*w/35,bh=18+((i*37)%90);ctx.fillRect(x,h*.34-bh,w/34+2,bh);if(i%2===0){ctx.fillStyle=i%4?'#21e6ff55':'#ff2d8d55';ctx.fillRect(x+4,h*.34-bh+8,2,Math.max(4,bh-15));ctx.fillStyle='#080c18'}}
+ const block=w/35,cityStep=Math.floor(player.distance*190/block),cityDrift=(player.distance*190+player.lateral*w*.08)%block;ctx.fillStyle='#080c18';for(let i=-2;i<38;i++){const id=i+cityStep,x=i*block-cityDrift,bh=18+((id*37)%90);ctx.fillRect(x,h*.34-bh,block+2,bh);if(id%2===0){ctx.fillStyle=id%4?'#21e6ff55':'#ff2d8d55';ctx.fillRect(x+4,h*.34-bh+8,2,Math.max(4,bh-15));ctx.fillStyle='#080c18'}}
  ctx.fillStyle='#101526';ctx.fillRect(0,h*.34,w,h*.66);
  const slices=70,hz=h*.34;for(let i=0;i<slices;i++){const t=i/slices,t2=(i+1)/slices,y=hz+(h-hz)*t,y2=hz+(h-hz)*t2,half=roadHalf(t,w),half2=roadHalf(t2,w),x=roadX(y,w,h),x2=roadX(y2,w,h);ctx.beginPath();ctx.moveTo(x-half,y);ctx.lineTo(x+half,y);ctx.lineTo(x2+half2,y2);ctx.lineTo(x2-half2,y2);ctx.fillStyle=(i+Math.floor(player.progress*800))%8<4?'#252a35':'#20242e';ctx.fill();if(i%7<3){ctx.strokeStyle='#dce6ff44';ctx.lineWidth=Math.max(1,8*t);for(const lane of [-.34,.34]){ctx.beginPath();ctx.moveTo(x+half*lane,y);ctx.lineTo(x2+half2*lane,y2);ctx.stroke()}}}
  // neon edges
  for(const side of [-1,1]){ctx.beginPath();for(let i=0;i<=30;i++){const t=i/30,y=hz+(h-hz)*t,half=roadHalf(t,w),x=roadX(y,w,h)+half*side;i?ctx.lineTo(x,y):ctx.moveTo(x,y)}ctx.strokeStyle=side<0?'#ff2d8d':'#21e6ff';ctx.lineWidth=4;ctx.shadowBlur=18;ctx.shadowColor=ctx.strokeStyle;ctx.stroke();ctx.shadowBlur=0}
+ for(const side of [-1,1])for(let i=0;i<11;i++){const t=(i/11+player.distance*4)%1;if(t<.06)continue;const y=hz+(h-hz)*t,half=roadHalf(t,w),x=roadX(y,w,h)+half*side*1.08,size=3+10*t;ctx.fillStyle=side<0?'#ff2d8d':'#21e6ff';ctx.shadowBlur=12;ctx.shadowColor=ctx.fillStyle;ctx.fillRect(x-size/2,y-size*2,size,size*2);ctx.shadowBlur=0}
  const nextTurn=courseBend(player.progress+.1);if(Math.abs(nextTurn)>1.1){ctx.save();ctx.textAlign='center';ctx.font=`800 ${Math.max(20,w*.035)}px "Barlow Condensed",sans-serif`;ctx.fillStyle='#ffe45c';ctx.shadowBlur=14;ctx.shadowColor='#ffe45c';ctx.fillText(nextTurn>0?'›››':'‹‹‹',w/2,h*.43);ctx.restore()}
  // finish line
  const finishD=(1-player.progress)%1;if(finishD<.22){const t=1-Math.pow(finishD/.22,.55),y=hz+(h-hz)*t,half=roadHalf(t,w),x=roadX(y,w,h),lineH=6+18*t,cols=12;for(let row=0;row<2;row++)for(let col=0;col<cols;col++){ctx.fillStyle=(row+col)%2?'#f5f7ff':'#10131d';ctx.fillRect(x-half+col*(half*2/cols),y-lineH/2+row*(lineH/2),half*2/cols+1,lineH/2+1)}}
@@ -55,7 +56,7 @@ function draw(){const w=canvas.clientWidth,h=canvas.clientHeight;ctx.clearRect(0
  boosts.forEach(b=>{let d=(b-player.progress+1)%1;if(d<.22){const t=1-Math.pow(d/.22,.55),y=hz+(h-hz)*t,x=roadX(y,w,h),ww=roadHalf(t,w)*.92,hh=8+17*t,color='#ffe45c';ctx.fillStyle='#111321';ctx.fillRect(x-ww/2-3,y-hh/2-3,ww+6,hh+6);ctx.fillStyle=color;ctx.shadowBlur=22;ctx.shadowColor=color;ctx.fillRect(x-ww/2,y-hh/2,ww,hh);ctx.fillStyle='#ffffff';for(let stripe=-.38;stripe<=.38;stripe+=.38)ctx.fillRect(x+ww*stripe-ww*.055,y-hh/2,ww*.11,hh);ctx.shadowBlur=0}});
  // rivals
  rivals.forEach(r=>{let d=(r.progress-player.progress+1)%1;if(d>.015&&d<.32){const t=1-Math.pow(d/.32,.55),y=hz+(h-hz)*t,half=roadHalf(t,w),x=roadX(y,w,h)+half*r.lane,sz=10+38*t;drawKart(x,y,sz,r.color,false)}});
- drawKart(w/2+player.lateral*w*.13,h*.82,52,'#caff3d',true);if(player.boost>0)drawBoostStatus(w,h);drawMiniMap(w,h);drawParticles(w,h);
+ drawKart(w/2,h*.69,52,'#caff3d',true);if(player.boost>0)drawBoostStatus(w,h);drawMiniMap(w,h);drawParticles(w,h);
 }
 function trackPoint(progress,cx,cy,scale){const a=progress*Math.PI*2-Math.PI/2,r=1+.13*Math.sin(a*3)-.07*Math.cos(a*2);return{x:cx+Math.cos(a)*scale*r,y:cy+Math.sin(a)*scale*.62*r}}
 function drawMiniMap(w,h){
