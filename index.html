@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#090d19" />
   <meta name="description" content="Canvas 2Dで遊べるネオン・カートレース" />
   <title>NEON LAP — Canvas Kart</title>
@@ -11,13 +11,13 @@
 <body>
   <main class="shell">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">NL</span><span>NEON LAP</span><span class="version" aria-label="現在のバージョン">v1.3.0</span></div>
+      <div class="brand"><span class="brand-mark">NL</span><span>NEON LAP</span><span class="version" aria-label="現在のバージョン">v1.3.1</span></div>
       <div class="status"><span class="dot"></span><span>ARCADE CIRCUIT 01</span></div>
       <div class="topbar-actions"><button id="restartRaceBtn" class="icon-btn" aria-label="レースをリスタート">RESTART ↻</button><button id="soundBtn" class="icon-btn" aria-label="サウンド切替">SOUND ON</button></div>
     </header>
 
     <section class="game-frame" aria-label="カートレースゲーム">
-      <canvas id="game" width="1280" height="720" tabindex="0" aria-label="レース画面。矢印キーまたはWASDで操作します"></canvas>
+      <canvas id="game" width="1280" height="720" tabindex="0" aria-label="レース画面。キーボードまたは画面下のタッチ操作で走行します"></canvas>
       <div class="scanlines" aria-hidden="true"></div>
 
       <div class="hud hud-left">
@@ -40,6 +40,7 @@
           <p>3周のナイトレース。ブーストパッドを踏んで、ライバルを抜き去れ。</p>
           <button id="startBtn" class="primary">START ENGINE <span>↗</span></button>
           <div class="keys"><span><kbd>W</kbd><kbd>↑</kbd> 加速</span><span><kbd>A</kbd><kbd>D</kbd> ステア</span><span><kbd>S</kbd><kbd>↓</kbd> ブレーキ</span></div>
+          <p class="mobile-tip">スマホでは画面下のボタンで操作できます。</p>
         </div>
       </div>
 

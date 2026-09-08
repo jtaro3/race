@@ -8,7 +8,7 @@ function resize(){const d=Math.min(devicePixelRatio,2),r=canvas.getBoundingClien
 addEventListener('resize',resize);resize();
 addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();keys[e.key.toLowerCase()]=true});
 addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
-document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key.toLowerCase();b.addEventListener('pointerdown',e=>{e.preventDefault();keys[k]=true;b.setPointerCapture(e.pointerId)});b.addEventListener('pointerup',()=>keys[k]=false);b.addEventListener('pointercancel',()=>keys[k]=false)});
+document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key.toLowerCase(),release=()=>keys[k]=false;b.addEventListener('pointerdown',e=>{e.preventDefault();keys[k]=true;b.setPointerCapture(e.pointerId)});b.addEventListener('pointerup',release);b.addEventListener('pointercancel',release);b.addEventListener('lostpointercapture',release)});document.addEventListener('visibilitychange',()=>{if(document.hidden)Object.keys(keys).forEach(k=>keys[k]=false)});
 $('#soundBtn').onclick=()=>{sound=!sound;$('#soundBtn').textContent=`SOUND ${sound?'ON':'OFF'}`};
 $('#startBtn').onclick=startRace;$('#restartBtn').onclick=startRace;$('#restartRaceBtn').onclick=startRace;
 function beep(freq,d=.08){if(!sound)return;const a=beep.a||(beep.a=new AudioContext),o=a.createOscillator(),g=a.createGain();o.frequency.value=freq;o.type='square';g.gain.setValueAtTime(.04,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+d);o.connect(g).connect(a.destination);o.start();o.stop(a.currentTime+d)}
