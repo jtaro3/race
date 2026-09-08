@@ -21,7 +21,7 @@ function update(dt,now){
  const up=keys.arrowup||keys.w||touchInput.up,down=keys.arrowdown||keys.s||touchInput.down,left=keys.arrowleft||keys.a||touchInput.left,right=keys.arrowright||keys.d||touchInput.right;
  if(up)player.speed+=105*dt;else player.speed-=37*dt;if(down)player.speed-=150*dt;
  const steer=(right?1:0)-(left?1:0),curveForce=Math.max(-3,Math.min(3,courseBend(player.progress)));player.lateral+=steer*dt*(.7+player.speed/180);player.lateral-=curveForce*(player.speed/205)*.9*dt;player.lateral*=Math.pow(.97,dt*60);
- const wallLimit=.72,hitWall=Math.abs(player.lateral)>wallLimit;if(hitWall){player.lateral=Math.sign(player.lateral)*wallLimit;player.boost=0;if(!player.wallHit){player.speed=Math.min(78,player.speed*.42);player.wallHit=true;player.wallFlash=1;player.wallTimer=.6;beep(120,.07)}}else player.wallHit=false;player.wallTimer=Math.max(0,player.wallTimer-dt);if(player.wallTimer>0)player.speed-=300*dt;player.speed=Math.max(0,Math.min(player.boost>0?250:205,player.speed));player.boost=Math.max(0,player.boost-dt);player.wallFlash=Math.max(0,player.wallFlash-dt*3);
+ const wallLimit=.72,hitWall=Math.abs(player.lateral)>wallLimit;if(hitWall){player.lateral=Math.sign(player.lateral)*wallLimit;player.boost=0;if(!player.wallHit){player.speed=0;player.wallHit=true;player.wallFlash=1;player.wallTimer=.75;beep(120,.07)}}else player.wallHit=false;player.wallTimer=Math.max(0,player.wallTimer-dt);if(player.wallTimer>0)player.speed=0;player.speed=Math.max(0,Math.min(player.boost>0?250:205,player.speed));player.boost=Math.max(0,player.boost-dt);player.wallFlash=Math.max(0,player.wallFlash-dt*3);
  const distanceDelta=player.speed*dt/trackLength,prev=player.progress;player.distance+=distanceDelta;player.progress=player.distance%1;
  boosts.forEach((b,i)=>{let d=Math.abs(player.progress-b);if(d>.5)d=1-d;if(d>.04){boostArmed[i]=true;return}if(d<.028&&Math.abs(player.lateral)<.52&&boostArmed[i]){boostArmed[i]=false;player.boost=1.5;player.speed=Math.max(player.speed,230);beep(880,.12)}});
  if(player.progress<prev){const lapTime=now-player.lapStart;player.best=player.best?Math.min(player.best,lapTime):lapTime;player.lapStart=now;if(player.lap>=3){finish(now);return}player.lap++}
@@ -39,7 +39,7 @@ if(window.PointerEvent){canvas.addEventListener('pointerdown',e=>{if(e.pointerTy
 function courseCenter(progress){const p=((progress%1)+1)%1,n=courseCenters.length,scaled=p*n,index=Math.floor(scaled),t=scaled-index,ease=t*t*(3-2*t),a=courseCenters[index],b=courseCenters[(index+1)%n];return a+(b-a)*ease}
 function courseBend(progress){const step=.003;return(courseCenter(progress+step)-courseCenter(progress-step))/(step*2)}
 function roadHalf(t,w){return w*(.045+.43*t)}
-function roadX(y,w,h){const horizon=h*.34,t=(y-horizon)/(h-horizon),lookAhead=(1-t)*.28,curve=(courseCenter(player.progress+lookAhead)-courseCenter(player.progress))*w*.62;return w/2+curve-player.lateral*w*.34*t}
+function roadX(y,w,h){const horizon=h*.34,t=(y-horizon)/(h-horizon),lookAhead=(1-t)*.28,curve=(courseCenter(player.progress+lookAhead)-courseCenter(player.progress))*w*.62;return w/2+curve-player.lateral*w*.72*t}
 function draw(){const w=canvas.clientWidth,h=canvas.clientHeight;ctx.clearRect(0,0,w,h);
  const g=ctx.createLinearGradient(0,0,0,h*.55);g.addColorStop(0,'#071023');g.addColorStop(1,'#301143');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
  // skyline
@@ -56,7 +56,7 @@ function draw(){const w=canvas.clientWidth,h=canvas.clientHeight;ctx.clearRect(0
  boosts.forEach(b=>{let d=(b-player.progress+1)%1;if(d<.22){const t=1-Math.pow(d/.22,.55),y=hz+(h-hz)*t,x=roadX(y,w,h),ww=roadHalf(t,w)*.92,hh=8+17*t,color='#ffe45c';ctx.fillStyle='#111321';ctx.fillRect(x-ww/2-3,y-hh/2-3,ww+6,hh+6);ctx.fillStyle=color;ctx.shadowBlur=22;ctx.shadowColor=color;ctx.fillRect(x-ww/2,y-hh/2,ww,hh);ctx.fillStyle='#ffffff';for(let stripe=-.38;stripe<=.38;stripe+=.38)ctx.fillRect(x+ww*stripe-ww*.055,y-hh/2,ww*.11,hh);ctx.shadowBlur=0}});
  // rivals
  rivals.forEach(r=>{let d=(r.progress-player.progress+1)%1;if(d>.015&&d<.32){const t=1-Math.pow(d/.32,.55),y=hz+(h-hz)*t,half=roadHalf(t,w),x=roadX(y,w,h)+half*r.lane,sz=10+38*t;drawKart(x,y,sz,r.color,false)}});
- drawKart(w/2,h*.69,52,'#caff3d',true);if(player.wallFlash>0){ctx.fillStyle=`rgba(255,45,141,${player.wallFlash*.14})`;ctx.fillRect(0,0,w,h)}if(player.boost>0)drawBoostStatus(w,h);drawMiniMap(w,h);drawParticles(w,h);
+ drawKart(w/2,h*.69,52,'#caff3d',true);if(player.wallFlash>0){ctx.fillStyle=`rgba(255,45,141,${player.wallFlash*.18})`;ctx.fillRect(0,0,w,h);ctx.textAlign='center';ctx.font=`italic 800 ${Math.max(22,w*.04)}px "Barlow Condensed",sans-serif`;ctx.fillStyle='#ff8b9a';ctx.fillText('WALL HIT',w/2,h*.54)}if(player.boost>0)drawBoostStatus(w,h);drawMiniMap(w,h);drawParticles(w,h);
 }
 function trackPoint(progress,cx,cy,scale){const a=progress*Math.PI*2-Math.PI/2,r=1+.13*Math.sin(a*3)-.07*Math.cos(a*2);return{x:cx+Math.cos(a)*scale*r,y:cy+Math.sin(a)*scale*.62*r}}
 function drawMiniMap(w,h){
