@@ -11,7 +11,7 @@
 <body>
   <main class="shell">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">NL</span><span>NEON LAP</span><span class="version" aria-label="現在のバージョン">v1.3.1</span></div>
+      <div class="brand"><span class="brand-mark">NL</span><span>NEON LAP</span><span class="version" aria-label="現在のバージョン">v1.4.0</span></div>
       <div class="status"><span class="dot"></span><span>ARCADE CIRCUIT 01</span></div>
       <div class="topbar-actions"><button id="restartRaceBtn" class="icon-btn" aria-label="レースをリスタート">RESTART ↻</button><button id="soundBtn" class="icon-btn" aria-label="サウンド切替">SOUND ON</button></div>
     </header>
@@ -40,7 +40,7 @@
           <p>3周のナイトレース。ブーストパッドを踏んで、ライバルを抜き去れ。</p>
           <button id="startBtn" class="primary">START ENGINE <span>↗</span></button>
           <div class="keys"><span><kbd>W</kbd><kbd>↑</kbd> 加速</span><span><kbd>A</kbd><kbd>D</kbd> ステア</span><span><kbd>S</kbd><kbd>↓</kbd> ブレーキ</span></div>
-          <p class="mobile-tip">スマホでは画面下のボタンで操作できます。</p>
+          <p class="mobile-tip">スマホではレース画面の好きな場所をタッチし、表示されたゲームパッドをスライドして操作できます。</p>
         </div>
       </div>
 
@@ -55,6 +55,7 @@
         </div>
       </div>
 
+      <div id="touchPad" class="touch-pad" aria-hidden="true"><div class="touch-pad-stick"></div></div>
       <div class="mobile-controls" aria-label="タッチ操作">
         <button data-key="ArrowLeft" aria-label="左へ曲がる">←</button>
         <button data-key="ArrowUp" aria-label="加速">↑</button>
