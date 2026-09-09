@@ -8,9 +8,9 @@ const touchPad=$('#touchPad');
 // Course data lives in world space. Changing these points reshapes both views.
 const trackPoints=[
   {x:-520,y:-650,width:255},{x:-80,y:-735,width:260},{x:420,y:-720,width:260},
-  {x:760,y:-560,width:250},{x:900,y:-230,width:245},{x:865,y:150,width:250},
-  {x:650,y:480,width:265},{x:270,y:650,width:275},{x:-150,y:625,width:275},
-  {x:-535,y:520,width:265},{x:-800,y:285,width:255},{x:-875,y:-65,width:250},
+  {x:760,y:-560,width:250},{x:900,y:-230,width:245},{x:855,y:120,width:250},
+  {x:680,y:390,width:255},{x:410,y:540,width:265},{x:135,y:485,width:260},
+  {x:-95,y:325,width:250},{x:-440,y:350,width:265},{x:-735,y:205,width:255},{x:-865,y:-80,width:250},
   {x:-770,y:-390,width:250}
 ];
 const ROAD_LIMIT=.8,TRACK_SAMPLES=160,GRASS_CRAWL_SPEED=44,PLAYER_RADIUS=26;
