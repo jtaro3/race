@@ -8,7 +8,7 @@ const visualDesign={
   },
   road:{edge:'#f3e3b4',mark:'#fff6ca',stripeEvery:3,centerEvery:10},
   ground:{spacing:230,variants:['grass','flower']},
-  wall:{sampleStep:4,worldSize:44},
+  wall:{sampleStep:5,worldSize:42,base:'#4a4339',face:'#e8d6a7',top:'#fff2c9',accent:'#dc574b'},
   ui:{mapTitle:'COURSE MAP  •  LIVE WORLD POSITION'},
   sprites:{
     kart:{
@@ -23,6 +23,6 @@ const visualDesign={
     tree:{legend:{T:'#2e4930',L:'#579f5c',H:'#97d66d'},pixels:['...H...','..LLL..','.LLLLL.','LLLLLLL','...T...','...T...']},
     grass:{legend:{G:'#276c45',H:'#8dcf6c'},pixels:['..H..','.GGG.','..G..']},
     flower:{legend:{G:'#286d46',F:'#ffe978',P:'#ffffff'},pixels:['..P..','.FFF.','..G..','..G..']},
-    wall:{legend:{O:'#423c37',C:'#f8efd2',R:'#df5447'},pixels:['CCCCCC','RRCCRR','OOOOOO','O....O']}
+    wall:{legend:{O:'#423c37',C:'#f8efd2',R:'#df5447'},pixels:['CCCCCC','CRRCRC','CRRCRC','OOOOOO']}
   }
 };
