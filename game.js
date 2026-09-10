@@ -1188,10 +1188,12 @@ function circleHitsWall(x, y, r = PLAYER_RADIUS) {
   for (let row = p.row - range; row <= p.row + range; row++)
     for (let col = p.col - range; col <= p.col + range; col++) {
       if (col < 0 || row < 0 || col >= courseMap.cols || row >= courseMap.rows || courseMap.cells[row][col] === 'wall') {
-        const left = courseMap.originX + col * courseMap.size,
-          top = courseMap.originY + row * courseMap.size,
-          cx = clamp(x, left, left + courseMap.size),
-          cy = clamp(y, top, top + courseMap.size);
+        const inset = 12,
+          left = courseMap.originX + col * courseMap.size + inset,
+          top = courseMap.originY + row * courseMap.size + inset,
+          wallSize = courseMap.size - inset * 2,
+          cx = clamp(x, left, left + wallSize),
+          cy = clamp(y, top, top + wallSize);
         if ((x - cx) * (x - cx) + (y - cy) * (y - cy) < r * r) return true
       }
     }
