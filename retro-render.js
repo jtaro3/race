@@ -45,9 +45,9 @@ spriteCatalog.kart.frames = {
   side: sideKart, front: frontKart
 };
 spriteCatalog.tree = {
-  legend: { O: '#185827', L: '#29992c', H: '#62c83b', T: '#86522a' },
-  pixels: ['....HHHH....', '..HHHHHHHH..', '.HLLLLLLLLH.', 'HLLLLLLLLLLH',
-    'OLLLLLLLLLLO', '.OLLLLLLLLO.', '..OOOOOOOO..', '.....TT.....', '.....TT.....']
+  legend: { O: '#185827', L: '#29992c', H: '#62c83b', T: '#86522a', S: '#57371f', G: '#bbdf68' },
+  pixels: ['....HHHH....', '..HHGGHHLH..', '.HHHHLLLLLO.', 'HHHLLLLLLLOO',
+    'HLLLLLLLLLOO', '.LLLLLLLLOO.', '..OOOOOOOO..', '.....TS.....', '.....TS.....', '....TTSS....']
 };
 
 function retroCamera() {
@@ -128,7 +128,7 @@ function renderRetroFloor(width, height) {
 scenery.forEach(tree => { tree.color = '#36a337'; });
 visualDesign.palette.grassTiles = ['#38a633', '#52b834', '#32a02e', '#68bd39'];
 
-document.querySelector('.version').textContent = 'v4.1.2-camera-controls';
+document.querySelector('.version').textContent = 'v4.2.0-solid-objects';
 document.querySelector('#gridToggle').addEventListener('change', event => {
   retroGridVisible = event.target.checked;
 });
@@ -140,22 +140,57 @@ document.querySelector('.brand > span:nth-child(2)').textContent = 'RETRO KART';
 // CSS loads after game.js; keep the backing bitmap in sync with layout changes.
 new ResizeObserver(resize).observe(canvas);
 
-// Chunky fence tiles keep their visual footprint close to the chip collider.
+// Extruded chip walls: all faces use the same world-space footprint as collision.
 function renderRetroWalls(width, height) {
-  const visible = [];
+  const faces = [];
+  const origin = retroCamera(), sin = Math.sin(camera.angle), cos = Math.cos(camera.angle);
+  const point = (x, y, z) => {
+    const dx = x - origin.x, dy = y - origin.y;
+    return { side: dx * cos + dy * sin, depth: dx * sin - dy * cos, z };
+  };
+  const addFace = (vertices, color) => {
+    // Clip at the near plane instead of dropping whole walls beside the camera.
+    const clipped = [];
+    for (let i = 0; i < vertices.length; i++) {
+      const a = vertices[i], b = vertices[(i + 1) % vertices.length];
+      if (a.depth >= 24) clipped.push(a);
+      if ((a.depth >= 24) !== (b.depth >= 24)) {
+        const t = (24 - a.depth) / (b.depth - a.depth);
+        clipped.push({ depth: 24, side: a.side + (b.side - a.side) * t, z: a.z + (b.z - a.z) * t });
+      }
+    }
+    if (clipped.length >= 3) faces.push({ vertices: clipped, color,
+      depth: vertices.reduce((sum, p) => sum + p.depth, 0) / vertices.length });
+  };
   for (let row = 0; row < courseMap.rows; row++) {
     for (let col = 0; col < courseMap.cols; col++) {
       if (courseMap.cells[row][col] !== 'wall') continue;
-      const center = cellCenter(col, row);
-      const p = cameraPoint(center.x, center.y, width, height);
-      if (p) visible.push(p);
+      const left = courseMap.originX + col * courseMap.size + 12;
+      const top = courseMap.originY + row * courseMap.size + 12;
+      const size = courseMap.size - 24;
+      const corners = [[left, top], [left + size, top], [left + size, top + size], [left, top + size]];
+      const bottom = corners.map(([x,y]) => point(x,y,0));
+      const upper = corners.map(([x,y]) => point(x,y,32));
+      if (bottom.every(p => p.depth < 24 || p.depth > 3600)) continue;
+      const white = (col + row) % 2;
+      addFace(upper, white ? '#fff0d5' : '#ff8270');
+      for (let edge = 0; edge < 4; edge++) {
+        const next = (edge + 1) % 4;
+        const shades = white ? ['#c9c0a6', '#a49c89', '#e1d9be', '#b6ad98'] : ['#c43b35', '#8e292c', '#e34e40', '#ac302f'];
+        addFace([bottom[edge], bottom[next], upper[next], upper[edge]], shades[edge]);
+      }
     }
   }
-  visible.sort((a, b) => b.depth - a.depth);
-  for (const p of visible) {
-    const unit = Math.min(18, courseMap.size * p.scale / 6);
-    drawPixelSprite(spriteCatalog.wall, p.x, p.y, unit,
-      { C: '#e5ce91', R: '#ae7e48', O: '#765332' });
+  faces.sort((a, b) => b.depth - a.depth);
+  for (const face of faces) {
+    ctx.beginPath();
+    face.vertices.forEach((p, i) => {
+      const scale = RETRO_FOCAL / p.depth;
+      const x = width / 2 + p.side * scale * width / RETRO_WIDTH;
+      const y = (RETRO_HORIZON + (RETRO_CAMERA_HEIGHT - p.z) * scale) * height / RETRO_HEIGHT;
+      if (i) ctx.lineTo(x,y); else ctx.moveTo(x,y);
+    });
+    ctx.closePath(); ctx.fillStyle = face.color; ctx.fill();
   }
 }
 
@@ -195,6 +230,14 @@ drawKart = function (x, y, size, color, hero, tilt = 0, frame = 'rear') {
     ? (steering > 0 || relativeAngle > .12 ? 'rear-right' : 'rear-left') : 'rear';
   drawPixelSprite({ pixels: spriteCatalog.kart.frames[frame] || rearKart, legend: spriteCatalog.kart.legend }, 0, 0, unit,
     { B: hero ? '#d84435' : color });
+  // Wheel rims and a shaded bumper add volume without changing ground contact.
+  ctx.fillStyle = '#748394';
+  ctx.fillRect(-unit * 5.8, -unit * 3, unit, unit * 1.5);
+  ctx.fillRect(unit * 4.8, -unit * 3, unit, unit * 1.5);
+  ctx.fillStyle = '#192330';
+  ctx.fillRect(-unit * 3.5, -unit * 1.8, unit * 7, unit * .8);
+  ctx.fillStyle = '#d2e6ec';
+  ctx.fillRect(-unit * 3.5, -unit * 2.2, unit * 7, unit * .45);
   ctx.restore();
 };
 
@@ -203,6 +246,7 @@ renderRaceView = function (width, height) {
   ctx.beginPath(); ctx.rect(0, 0, width, height); ctx.clip();
   renderRetroSky(width, height);
   renderRetroFloor(width, height);
+  renderRetroWalls(width, height);
   // All objects share the same projection as the textured floor.
   renderObjects(width, height);
   const contact = cameraPoint(player.x, player.y, width, height);

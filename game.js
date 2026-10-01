@@ -905,6 +905,10 @@ function renderObjects(w, raceH) {
     if (v.type === 'boost') drawRibbon(it, it.width * .78, 20, it.color, w, raceH);
     else if (v.type === 'tree') {
       const s = Math.min(150, it.size * p.scale);
+      ctx.fillStyle = '#16391c66';
+      ctx.beginPath();
+      ctx.ellipse(p.x + s * .12, p.y, s * .46, s * .12, 0, 0, Math.PI * 2);
+      ctx.fill();
       ctx.shadowBlur = 0;
       ctx.shadowColor = it.color;
       drawPixelSprite(spriteCatalog.tree, p.x, p.y, s / 7, {
