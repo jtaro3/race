@@ -19,3 +19,10 @@ body { background: #192f23; }
 .start-card p { color: #fff9df; }
 .primary { background: #ffe45c; box-shadow: 4px 4px #92732e; }
 .icon-btn { color: #fff8da; background: #294334; border-color: #65745f; }
+.game-frame { min-height: 0; }
+@media (max-width: 720px) and (orientation: portrait) {
+  .game-frame { height: min(calc(100svh - 166px), 125vw); }
+  .start-card { padding: 12px; }
+  .start-card h1 { font-size: 2.8rem; margin: 10px 0; }
+  .start-card .keys, .start-card .mobile-tip { display: none; }
+}

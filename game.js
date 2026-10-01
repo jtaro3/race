@@ -926,7 +926,7 @@ function renderObjects(w, raceH) {
       ctx.fillRect(p.x - s, p.y - s * .85, s * 2, s * .85);
       ctx.fillStyle = it.color;
       ctx.fillRect(p.x - s * .88, p.y - s * .72, s * 1.76, s * .15)
-    } else drawKart(p.x, p.y, Math.min(76, 28 * p.scale), it.color, false, 0, spriteFrameFor(it.angle))
+    } else drawKart(p.x, p.y, Math.min(w * .24, 42 * p.scale), it.color, false, 0, spriteFrameFor(it.angle))
   }
 }
 
@@ -1120,7 +1120,7 @@ function renderMinimap(w, h, raceH) {
 function render() {
   const w = canvas.clientWidth,
     h = canvas.clientHeight,
-    raceH = Math.floor(h * .64);
+    raceH = Math.floor(Math.min(h * .64, w * .65));
   ctx.clearRect(0, 0, w, h);
   renderRaceView(w, raceH);
   renderMinimap(w, h, raceH)

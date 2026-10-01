@@ -4,7 +4,7 @@ const retroContext = retroSurface.getContext('2d');
 let retroPixels;
 const RETRO_WIDTH = 384;
 const RETRO_HEIGHT = 240;
-const RETRO_HORIZON = 72;
+const RETRO_HORIZON = 64;
 const RETRO_FOCAL = 180;
 let RETRO_CAMERA_HEIGHT = 60;
 let retroGridVisible = false;
@@ -130,7 +130,7 @@ function renderRetroFloor(width, height) {
 scenery.forEach(tree => { tree.color = '#36a337'; });
 visualDesign.palette.grassTiles = ['#38a633', '#52b834', '#32a02e', '#68bd39'];
 
-document.querySelector('.version').textContent = 'v4.4.0-shaded-sprites';
+document.querySelector('.version').textContent = 'v4.5.0-reference-view';
 document.querySelector('#gridToggle').addEventListener('change', event => {
   retroGridVisible = event.target.checked;
 });
@@ -259,8 +259,10 @@ renderRaceView = function (width, height) {
   renderObjects(width, height);
   const contact = cameraPoint(player.x, player.y, width, height);
   drawKart(width / 2 + player.steer * width * .018, contact ? contact.y : height * .83,
-    Math.min(width * .16, height * .26), '#d84435', true);
+    Math.min(width * .13, height * .32), '#d84435', true);
   ctx.font = `bold ${Math.max(14, width * .025)}px monospace`;
+  ctx.globalAlpha = 1;
+  ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = '#fff';
   ctx.shadowColor = '#182522'; ctx.shadowBlur = 0;
   ctx.shadowOffsetX = 2; ctx.shadowOffsetY = 2;
