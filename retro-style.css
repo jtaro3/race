@@ -1,0 +1,14 @@
+:root { --lime: #ffe45c; --cyan: #e5f6ff; --pink: #d84435; }
+body { background: #192f23; }
+.shell { max-width: 1100px; }
+.game-frame { border: 5px solid #151a17; box-shadow: none; }
+.scanlines { display: none; }
+.brand-mark { background: #f5d55e; }
+.hud { display: none; }
+.hud .eyebrow { color: #fff; text-shadow: 2px 2px #182522; }
+.hud strong { color: #fff; font-style: normal; text-shadow: 3px 3px #182522; }
+.start-card h1 em { color: #ffe45c; -webkit-text-stroke: 0; text-shadow: 3px 3px #73451e; }
+.overlay { background: #152a2377; }
+.start-card p { color: #fff9df; }
+.primary { background: #ffe45c; box-shadow: 4px 4px #92732e; }
+.icon-btn { color: #fff8da; background: #294334; border-color: #65745f; }
