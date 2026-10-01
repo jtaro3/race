@@ -6,7 +6,8 @@ const RETRO_WIDTH = 384;
 const RETRO_HEIGHT = 240;
 const RETRO_HORIZON = 72;
 const RETRO_FOCAL = 180;
-const RETRO_CAMERA_HEIGHT = 80;
+let RETRO_CAMERA_HEIGHT = 80;
+let retroGridVisible = false;
 const RETRO_CAMERA_BACK = 120;
 
 spriteCatalog.kart.legend = {
@@ -50,9 +51,10 @@ spriteCatalog.tree = {
 };
 
 function retroCamera() {
+  const back = RETRO_CAMERA_BACK * RETRO_CAMERA_HEIGHT / 80;
   return {
-    x: camera.x - Math.sin(camera.angle) * RETRO_CAMERA_BACK,
-    y: camera.y + Math.cos(camera.angle) * RETRO_CAMERA_BACK
+    x: camera.x - Math.sin(camera.angle) * back,
+    y: camera.y + Math.cos(camera.angle) * back
   };
 }
 
@@ -102,6 +104,17 @@ function renderRetroFloor(width, height) {
       } else {
         red = hash < 3 ? 111 : 37; green = hash < 3 ? 188 : 139 + hash * 3; blue = 32;
       }
+      // World-aligned grid: stays attached to the ground while driving/turning.
+      if (retroGridVisible && !outside) {
+        const gridX = ((worldX - courseMap.originX) % courseMap.size + courseMap.size) % courseMap.size;
+        const gridY = ((worldY - courseMap.originY) % courseMap.size + courseMap.size) % courseMap.size;
+        const lineWidth = Math.min(4, Math.max(1.5, step * .65));
+        if (gridX < lineWidth || gridY < lineWidth) {
+          red = Math.round(red * .55 + 110);
+          green = Math.round(green * .55 + 110);
+          blue = Math.round(blue * .55 + 110);
+        }
+      }
       const index = (row * RETRO_WIDTH + col) * 4;
       pixels[index] = red; pixels[index + 1] = green;
       pixels[index + 2] = blue; pixels[index + 3] = 255;
@@ -115,7 +128,14 @@ function renderRetroFloor(width, height) {
 scenery.forEach(tree => { tree.color = '#36a337'; });
 visualDesign.palette.grassTiles = ['#38a633', '#52b834', '#32a02e', '#68bd39'];
 
-document.querySelector('.version').textContent = 'v4.1.1-low-camera';
+document.querySelector('.version').textContent = 'v4.1.2-camera-controls';
+document.querySelector('#gridToggle').addEventListener('change', event => {
+  retroGridVisible = event.target.checked;
+});
+document.querySelector('#cameraHeight').addEventListener('input', event => {
+  RETRO_CAMERA_HEIGHT = clamp(Number(event.target.value), 45, 110);
+  document.querySelector('#cameraHeightValue').textContent = RETRO_CAMERA_HEIGHT;
+});
 document.querySelector('.brand > span:nth-child(2)').textContent = 'RETRO KART';
 // CSS loads after game.js; keep the backing bitmap in sync with layout changes.
 new ResizeObserver(resize).observe(canvas);

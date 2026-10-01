@@ -1,5 +1,12 @@
 :root { --lime: #ffe45c; --cyan: #e5f6ff; --pink: #d84435; }
 body { background: #192f23; }
+.view-controls { display: flex; align-items: center; gap: 10px; min-height: 36px; color: #fff8da; font-size: 12px; flex-wrap: wrap; }
+.view-controls label { display: flex; align-items: center; gap: 4px; }
+.view-controls input { accent-color: #ffe45c; }
+#cameraHeight { width: 120px; touch-action: pan-x; }
+#cameraHeightValue { min-width: 24px; }
+@media (max-width: 720px) { .game-frame { height: calc(100svh - 166px); } }
+@media (hover: none) and (pointer: coarse) and (orientation: landscape) { .game-frame { height: calc(100svh - 118px); } }
 .shell { max-width: 1100px; }
 .game-frame { border: 5px solid #151a17; box-shadow: none; }
 .scanlines { display: none; }
