@@ -128,7 +128,7 @@ function renderRetroFloor(width, height) {
 scenery.forEach(tree => { tree.color = '#36a337'; });
 visualDesign.palette.grassTiles = ['#38a633', '#52b834', '#32a02e', '#68bd39'];
 
-document.querySelector('.version').textContent = 'v4.2.0-solid-objects';
+document.querySelector('.version').textContent = 'v4.3.0-solid-kart';
 document.querySelector('#gridToggle').addEventListener('change', event => {
   retroGridVisible = event.target.checked;
 });
@@ -211,7 +211,53 @@ function renderRetroSky(width, height) {
   }
 }
 
+// Small local 3D models rasterized by Canvas 2D, with painter-sorted faces.
+function drawSolidModel(x, y, size, yaw, parts) {
+  const faces = [], sin = Math.sin(yaw), cos = Math.cos(yaw);
+  const project = (a,b,z) => {
+    const side = a*cos - b*sin, depth = a*sin + b*cos;
+    return { x:x+side*size, y:y+(depth*.32-z)*size, depth:depth-z*.2 };
+  };
+  for (const part of parts) {
+    const [a,b,z,w,d,h,colors] = part;
+    const points = [[a,b,z],[a+w,b,z],[a+w,b+d,z],[a,b+d,z],
+      [a,b,z+h],[a+w,b,z+h],[a+w,b+d,z+h],[a,b+d,z+h]].map(p=>project(...p));
+    const indices = [[0,1,5,4],[1,2,6,5],[2,3,7,6],[3,0,4,7],[4,5,6,7]];
+    indices.forEach((ids,i)=>faces.push({ points:ids.map(j=>points[j]),
+      depth:ids.reduce((sum,j)=>sum+points[j].depth,0)/4, color:colors[i] }));
+  }
+  faces.sort((a,b)=>a.depth-b.depth);
+  ctx.save(); ctx.shadowBlur=0;
+  for (const face of faces) {
+    ctx.beginPath(); face.points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
+    ctx.closePath(); ctx.fillStyle=face.color; ctx.fill();
+  }
+  ctx.restore();
+}
+function drawSolidTree(x,y,size,yaw) {
+  ctx.fillStyle='#17391c66'; ctx.beginPath();
+  ctx.ellipse(x+size*.1,y,size*.5,size*.12,0,0,Math.PI*2);ctx.fill();
+  const wood=['#714124','#57301d','#8d542e','#694022','#b17a44'];
+  const leaf=['#268633','#16572b','#319c35','#216b2a','#78c749'];
+  drawSolidModel(x,y,size,yaw,[[-.09,-.09,0,.18,.18,.65,wood],
+    [-.4,-.32,.5,.8,.64,.4,leaf],[-.3,-.25,.86,.6,.5,.28,leaf],
+    [-.18,-.18,1.1,.36,.36,.17,leaf]]);
+}
 drawKart = function (x, y, size, color, hero, tilt = 0, frame = 'rear') {
+  const yaw = hero ? angleDiff(player.angle,camera.angle)+player.steer*.25
+    : frame==='front'?Math.PI:frame==='side'?Math.PI/2:frame==='rear-left'?-.5:frame==='rear-right'?.5:0;
+  const tire=['#242b32','#101820','#303b47','#18222d','#485567'];
+  const body=['#9f302e','#70272c',color,'#b33b35','#ff8a70'];
+  const blue=['#315e9b','#213f6d','#427dc3','#284c80','#70a3de'];
+  const skin=['#d9935e','#b7754e','#f5b780','#d49366','#ffd19a'];
+  ctx.fillStyle='#18271b88';ctx.beginPath();ctx.ellipse(x,y,size*.5,size*.12,0,0,Math.PI*2);ctx.fill();
+  drawSolidModel(x,y,size,yaw,[
+    [-.46,-.28,.02,.18,.5,.25,tire],[.28,-.28,.02,.18,.5,.25,tire],
+    [-.33,-.34,.19,.66,.7,.18,body],[-.23,-.25,.37,.46,.36,.12,tire],
+    [-.2,-.16,.46,.4,.3,.35,blue],[-.15,-.13,.8,.3,.27,.24,skin],
+    [-.19,-.17,1.03,.38,.34,.13,body]]);
+  if(hero&&player.boost>0){ctx.fillStyle='#ef482c';ctx.fillRect(x-size*.08,y,size*.16,size*.18);}
+  return;
   const unit = size / 15;
   ctx.save();
   ctx.translate(Math.round(x), Math.round(y));
