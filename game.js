@@ -905,8 +905,8 @@ function renderObjects(w, raceH) {
     if (v.type === 'boost') drawRibbon(it, it.width * .78, 20, it.color, w, raceH);
     else if (v.type === 'tree') {
       const s = Math.min(150, it.size * p.scale);
-      if (typeof drawSolidTree === 'function') {
-        drawSolidTree(p.x, p.y, s, angleDiff(0, camera.angle));
+      if (typeof drawShadedTree === 'function') {
+        drawShadedTree(p.x, p.y, s);
         continue;
       }
       ctx.fillStyle = '#16391c66';
